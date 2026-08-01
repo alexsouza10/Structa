@@ -6,7 +6,16 @@
              x:DataType="vm:ViewportViewModel">
 
   <Panel Background="{DynamicResource StructaViewportBackgroundBrush}">
-    <views:RenderViewport FramesPerSecond="{Binding Fps, Mode=OneWayToSource}" />
+    <views:RenderViewport x:Name="RenderSurface" FramesPerSecond="{Binding Fps, Mode=OneWayToSource}" />
+
+    <!--
+      O RenderViewport compõe seu conteúdo via textura de GPU compartilhada e não participa do
+      hit-testing normal do Avalonia. Este overlay transparente (precisa de Background para ser
+      hit-testável) captura mouse/teclado e repassa para a navegação da câmera.
+    -->
+    <Border x:Name="InputSurface"
+            Background="Transparent"
+            Focusable="True" />
 
     <Border Background="#66000000"
             CornerRadius="4"

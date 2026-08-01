@@ -3,8 +3,9 @@ using System.Numerics;
 namespace Structa.Camera;
 
 /// <summary>
-/// Câmera 3D look-at (convenção Z para cima, como no SketchUp). Nesta etapa a câmera expõe
-/// apenas as matrizes a partir de um estado fixo — órbita/pan/zoom entram na Etapa 03.
+/// Câmera 3D look-at (convenção Z para cima, como no SketchUp). Expõe apenas posição/orientação
+/// e as matrizes derivadas — quem manipula esse estado (órbita/pan/zoom) é o
+/// <see cref="OrbitCameraController"/>.
 /// </summary>
 public sealed class Camera3D
 {

@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Structa.UI.ViewModels"
+             xmlns:selection="using:Structa.Core.Selection"
              x:Class="Structa.UI.Views.SideBarView"
              x:DataType="vm:SideBarViewModel">
 
@@ -9,9 +10,33 @@
           BorderThickness="0,0,1,0">
     <TabControl>
       <TabItem Header="Entidades">
-        <TextBlock Text="Painel de entidades — disponível na Etapa 04 (Seleção)."
-                   Foreground="{DynamicResource StructaTextSecondaryBrush}"
-                   Margin="12" TextWrapping="Wrap" />
+        <StackPanel Margin="12" Spacing="10">
+          <TextBlock Text="Modo de seleção" FontWeight="SemiBold"
+                     Foreground="{DynamicResource StructaTextPrimaryBrush}" />
+
+          <UniformGrid Columns="2">
+            <Button Content="Vértice" Margin="0,0,4,4" HorizontalContentAlignment="Center"
+                    Command="{Binding SetModeCommand}" CommandParameter="{x:Static selection:SelectionMode.Vertex}" />
+            <Button Content="Aresta" Margin="4,0,0,4" HorizontalContentAlignment="Center"
+                    Command="{Binding SetModeCommand}" CommandParameter="{x:Static selection:SelectionMode.Edge}" />
+            <Button Content="Face" Margin="0,0,4,0" HorizontalContentAlignment="Center"
+                    Command="{Binding SetModeCommand}" CommandParameter="{x:Static selection:SelectionMode.Face}" />
+            <Button Content="Objeto" Margin="4,0,0,0" HorizontalContentAlignment="Center"
+                    Command="{Binding SetModeCommand}" CommandParameter="{x:Static selection:SelectionMode.Object}" />
+          </UniformGrid>
+
+          <TextBlock Text="{Binding ModeLabel}" Foreground="{DynamicResource StructaTextSecondaryBrush}" />
+
+          <Separator />
+
+          <TextBlock Text="{Binding SelectionSummary}"
+                     Foreground="{DynamicResource StructaTextSecondaryBrush}"
+                     TextWrapping="Wrap" />
+
+          <TextBlock Text="Clique com o botão esquerdo para selecionar. Shift+clique soma à seleção. Esc limpa."
+                     Foreground="{DynamicResource StructaTextSecondaryBrush}"
+                     FontSize="11" TextWrapping="Wrap" Opacity="0.8" />
+        </StackPanel>
       </TabItem>
       <TabItem Header="Materiais">
         <TextBlock Text="Biblioteca de materiais — disponível na Etapa 10."
