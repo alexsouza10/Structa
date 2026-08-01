@@ -8,12 +8,12 @@ internal sealed class UserPreferencesRepository(StructaDbContext dbContext) : IU
 {
     public Task<UserPreferences?> GetAsync(CancellationToken cancellationToken = default)
     {
-        return dbContext.UserPreferences.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        return dbContext.UserPreferences.AsNoTracking().OrderBy(x => x.Id).FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task SaveAsync(UserPreferences preferences, CancellationToken cancellationToken = default)
     {
-        var existing = await dbContext.UserPreferences.FirstOrDefaultAsync(cancellationToken);
+        var existing = await dbContext.UserPreferences.OrderBy(x => x.Id).FirstOrDefaultAsync(cancellationToken);
 
         if (existing is null)
         {

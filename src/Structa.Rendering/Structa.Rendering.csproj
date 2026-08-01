@@ -5,6 +5,10 @@
     <ProjectReference Include="..\Structa.Geometry\Structa.Geometry.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.OpenGL" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
