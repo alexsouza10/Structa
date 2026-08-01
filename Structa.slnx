@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Structa.Application/Structa.Application.csproj" />
+    <Project Path="src/Structa.Camera/Structa.Camera.csproj" />
+    <Project Path="src/Structa.Core/Structa.Core.csproj" />
+    <Project Path="src/Structa.Editor/Structa.Editor.csproj" />
+    <Project Path="src/Structa.Exporter/Structa.Exporter.csproj" />
+    <Project Path="src/Structa.Geometry/Structa.Geometry.csproj" />
+    <Project Path="src/Structa.History/Structa.History.csproj" />
+    <Project Path="src/Structa.Importer/Structa.Importer.csproj" />
+    <Project Path="src/Structa.Infrastructure/Structa.Infrastructure.csproj" />
+    <Project Path="src/Structa.Materials/Structa.Materials.csproj" />
+    <Project Path="src/Structa.Persistence/Structa.Persistence.csproj" />
+    <Project Path="src/Structa.Plugins/Structa.Plugins.csproj" />
+    <Project Path="src/Structa.Rendering/Structa.Rendering.csproj" />
+    <Project Path="src/Structa.Selection/Structa.Selection.csproj" />
+    <Project Path="src/Structa.UI/Structa.UI.csproj" />
+    <Project Path="src/Structa.Utilities/Structa.Utilities.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Structa.Application.Tests/Structa.Application.Tests.csproj" />
+    <Project Path="tests/Structa.Core.Tests/Structa.Core.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Structa.UI.ViewModels"
+             x:Class="Structa.UI.Views.TopBarView"
+             x:DataType="vm:TopBarViewModel">
+
+  <Border Background="{DynamicResource StructaTopBarBackgroundBrush}"
+          BorderBrush="{DynamicResource StructaBorderBrush}"
+          BorderThickness="0,0,0,1"
+          Padding="8,4">
+    <DockPanel LastChildFill="True">
+
+      <TextBlock Text="Structa" FontWeight="Bold" FontSize="16"
+                 Foreground="{DynamicResource StructaTextPrimaryBrush}"
+                 VerticalAlignment="Center" Margin="4,0,20,0"
+                 DockPanel.Dock="Left" />
+
+      <StackPanel Orientation="Horizontal" Spacing="8" DockPanel.Dock="Right" VerticalAlignment="Center">
+        <TextBlock Text="Tema escuro" VerticalAlignment="Center"
+                   Foreground="{DynamicResource StructaTextSecondaryBrush}" />
+        <ToggleSwitch IsChecked="{Binding IsDarkTheme}" OnContent="{x:Null}" OffContent="{x:Null}" />
+      </StackPanel>
+
+      <Menu VerticalAlignment="Center">
+        <MenuItem Header="_Arquivo">
+          <MenuItem Header="_Novo" IsEnabled="False" />
+          <MenuItem Header="_Abrir..." IsEnabled="False" />
+          <MenuItem Header="_Salvar" IsEnabled="False" />
+          <Separator />
+          <MenuItem Header="Sai_r" Command="{Binding ExitCommand}" />
+        </MenuItem>
+        <MenuItem Header="_Editar">
+          <MenuItem Header="_Desfazer" IsEnabled="False" />
+          <MenuItem Header="_Refazer" IsEnabled="False" />
+        </MenuItem>
+        <MenuItem Header="Câ_mera">
+          <MenuItem Header="Ó_rbita" IsEnabled="False" />
+          <MenuItem Header="_Pan" IsEnabled="False" />
+          <MenuItem Header="_Zoom" IsEnabled="False" />
+        </MenuItem>
+        <MenuItem Header="_Desenhar">
+          <MenuItem Header="_Linha" IsEnabled="False" />
+          <MenuItem Header="A_rco" IsEnabled="False" />
+          <MenuItem Header="_Retângulo" IsEnabled="False" />
+          <MenuItem Header="_Círculo" IsEnabled="False" />
+        </MenuItem>
+        <MenuItem Header="_Ferramentas">
+          <MenuItem Header="_Empurrar/Puxar" IsEnabled="False" />
+          <MenuItem Header="_Mover" IsEnabled="False" />
+          <MenuItem Header="_Rotacionar" IsEnabled="False" />
+          <MenuItem Header="_Escalar" IsEnabled="False" />
+        </MenuItem>
+        <MenuItem Header="_Janela">
+          <MenuItem Header="_Cenas" IsEnabled="False" />
+          <MenuItem Header="_Materiais" IsEnabled="False" />
+        </MenuItem>
+        <MenuItem Header="Aj_uda">
+          <MenuItem Header="_Sobre o Structa" IsEnabled="False" />
+        </MenuItem>
+      </Menu>
+    </DockPanel>
+  </Border>
+
+</UserControl>

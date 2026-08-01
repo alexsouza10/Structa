@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Structa.UI.ViewModels"
+        xmlns:views="using:Structa.UI.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="900"
+        x:Class="Structa.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Structa"
+        Width="1400" Height="900"
+        MinWidth="960" MinHeight="600"
+        Background="{DynamicResource StructaWindowBackgroundBrush}">
+
+  <DockPanel LastChildFill="True">
+    <views:TopBarView DockPanel.Dock="Top" DataContext="{Binding TopBar}" />
+
+    <Grid ColumnDefinitions="280,4,*">
+      <views:SideBarView Grid.Column="0" DataContext="{Binding SideBar}" />
+      <GridSplitter Grid.Column="1" Width="4" ResizeDirection="Columns"
+                    Background="{DynamicResource StructaBorderBrush}" />
+      <views:ViewportView Grid.Column="2" DataContext="{Binding Viewport}" />
+    </Grid>
+  </DockPanel>
+
+</Window>

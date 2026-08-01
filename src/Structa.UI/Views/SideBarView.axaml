@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Structa.UI.ViewModels"
+             x:Class="Structa.UI.Views.SideBarView"
+             x:DataType="vm:SideBarViewModel">
+
+  <Border Background="{DynamicResource StructaSideBarBackgroundBrush}"
+          BorderBrush="{DynamicResource StructaBorderBrush}"
+          BorderThickness="0,0,1,0">
+    <TabControl>
+      <TabItem Header="Entidades">
+        <TextBlock Text="Painel de entidades — disponível na Etapa 04 (Seleção)."
+                   Foreground="{DynamicResource StructaTextSecondaryBrush}"
+                   Margin="12" TextWrapping="Wrap" />
+      </TabItem>
+      <TabItem Header="Materiais">
+        <TextBlock Text="Biblioteca de materiais — disponível na Etapa 10."
+                   Foreground="{DynamicResource StructaTextSecondaryBrush}"
+                   Margin="12" TextWrapping="Wrap" />
+      </TabItem>
+      <TabItem Header="Tags">
+        <TextBlock Text="Layers / Tags — disponível em etapa futura."
+                   Foreground="{DynamicResource StructaTextSecondaryBrush}"
+                   Margin="12" TextWrapping="Wrap" />
+      </TabItem>
+      <TabItem Header="Cenas">
+        <TextBlock Text="Cenas / Cortes — disponível em etapa futura."
+                   Foreground="{DynamicResource StructaTextSecondaryBrush}"
+                   Margin="12" TextWrapping="Wrap" />
+      </TabItem>
+    </TabControl>
+  </Border>
+
+</UserControl>

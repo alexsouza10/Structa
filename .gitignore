@@ -1,0 +1,35 @@
+## .NET
+bin/
+obj/
+out/
+
+## Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.userosscache
+*.suo
+
+## Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+## Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+## Rider
+*.sln.iml
+
+## Logs locais
+logs/
+
+## Dados locais de execução (SQLite gerado em %LocalAppData%\Structa, fora do repo)
+*.db
+*.db-shm
+*.db-wal

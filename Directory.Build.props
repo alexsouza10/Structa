@@ -1,0 +1,28 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Company>Structa</Company>
+    <Product>Structa</Product>
+    <Authors>Structa</Authors>
+    <NeutralLanguage>pt-BR</NeutralLanguage>
+
+    <!-- Qualidade e consistência de código -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!-- Determinístico e reprodutível -->
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <!-- Projetos de teste seguem convenção própria (não geram pacote, não precisam de nula estrita em asserts) -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+</Project>

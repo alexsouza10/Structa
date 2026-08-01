@@ -1,0 +1,22 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Color x:Key="StructaWindowBackgroundColor">#FF1E1E22</Color>
+  <Color x:Key="StructaTopBarBackgroundColor">#FF2A2A2F</Color>
+  <Color x:Key="StructaSideBarBackgroundColor">#FF252529</Color>
+  <Color x:Key="StructaViewportBackgroundColor">#FF141416</Color>
+  <Color x:Key="StructaBorderColor">#FF3A3A40</Color>
+  <Color x:Key="StructaTextPrimaryColor">#FFEDEDF0</Color>
+  <Color x:Key="StructaTextSecondaryColor">#FFA0A0A8</Color>
+  <Color x:Key="StructaAccentColor">#FF3D8BFF</Color>
+
+  <SolidColorBrush x:Key="StructaWindowBackgroundBrush" Color="{StaticResource StructaWindowBackgroundColor}" />
+  <SolidColorBrush x:Key="StructaTopBarBackgroundBrush" Color="{StaticResource StructaTopBarBackgroundColor}" />
+  <SolidColorBrush x:Key="StructaSideBarBackgroundBrush" Color="{StaticResource StructaSideBarBackgroundColor}" />
+  <SolidColorBrush x:Key="StructaViewportBackgroundBrush" Color="{StaticResource StructaViewportBackgroundColor}" />
+  <SolidColorBrush x:Key="StructaBorderBrush" Color="{StaticResource StructaBorderColor}" />
+  <SolidColorBrush x:Key="StructaTextPrimaryBrush" Color="{StaticResource StructaTextPrimaryColor}" />
+  <SolidColorBrush x:Key="StructaTextSecondaryBrush" Color="{StaticResource StructaTextSecondaryColor}" />
+  <SolidColorBrush x:Key="StructaAccentBrush" Color="{StaticResource StructaAccentColor}" />
+
+</ResourceDictionary>

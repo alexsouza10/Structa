@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Structa.UI.ViewModels"
+             x:Class="Structa.UI.Views.ViewportView"
+             x:DataType="vm:ViewportViewModel">
+
+  <Border Background="{DynamicResource StructaViewportBackgroundBrush}">
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+      <TextBlock Text="Viewport 3D" FontSize="20" FontWeight="SemiBold"
+                 Foreground="{DynamicResource StructaTextPrimaryBrush}"
+                 HorizontalAlignment="Center" />
+      <TextBlock Text="A engine de renderização (OpenGL via Silk.NET) será conectada na Etapa 02."
+                 Foreground="{DynamicResource StructaTextSecondaryBrush}"
+                 HorizontalAlignment="Center" />
+    </StackPanel>
+  </Border>
+
+</UserControl>
