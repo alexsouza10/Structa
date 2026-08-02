@@ -10,4 +10,10 @@ public sealed partial class ViewportViewModel : ViewModelBase
 {
     [ObservableProperty]
     public partial double Fps { get; set; }
+
+    /// <summary>Rótulo da ferramenta de arrasto ativa (distância do Empurrar/Puxar ou Mover, ângulo do
+    /// Rotacionar, fator do Escalar), já formatado; nulo quando nenhuma está ativa. Alimentado pelo
+    /// <c>RenderViewport</c> via binding OneWayToSource.</summary>
+    [ObservableProperty]
+    public partial string? ToolStatusText { get; set; }
 }

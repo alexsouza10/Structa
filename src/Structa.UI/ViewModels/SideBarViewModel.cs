@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Structa.Core.Editor;
 using Structa.Core.Messaging;
 using Structa.Core.Selection;
 
@@ -7,8 +8,10 @@ namespace Structa.UI.ViewModels;
 
 /// <summary>
 /// Painel lateral (Entidades, Materiais, Tags, Cenas). A aba Entidades controla o modo de seleção
-/// (vértice/aresta/face/objeto) e mostra um resumo da seleção atual, comunicando-se com o
-/// <c>RenderViewport</c> via <see cref="IEventAggregator"/> — nenhuma referência direta entre eles.
+/// (vértice/aresta/face/objeto), mostra um resumo da seleção atual e dispara o comando Espelhar (que
+/// age sobre a seleção, não é uma ferramenta de arrasto — por isso vive aqui, não na barra superior),
+/// comunicando-se com o <c>RenderViewport</c> via <see cref="IEventAggregator"/> — nenhuma referência
+/// direta entre eles.
 /// </summary>
 public sealed partial class SideBarViewModel : ViewModelBase
 {
@@ -35,6 +38,9 @@ public sealed partial class SideBarViewModel : ViewModelBase
         Serilog.Log.Information("SetMode command invoked with {Mode}", mode);
         Mode = mode;
     }
+
+    [RelayCommand]
+    private void Mirror(MirrorAxis axis) => _eventAggregator.Publish(new MirrorRequestedEvent(axis));
 
     partial void OnModeChanged(SelectionMode value)
     {

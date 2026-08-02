@@ -16,6 +16,7 @@ public sealed class RenderEngine : IDisposable
     private GridRenderer? _grid;
     private AxesRenderer? _axes;
     private LinePreviewRenderer? _linePreview;
+    private GhostOutlineRenderer? _ghostOutline;
     private readonly Dictionary<Guid, MeshRenderer> _meshRenderers = [];
     private readonly Dictionary<Guid, int> _uploadedVersions = [];
 
@@ -32,6 +33,7 @@ public sealed class RenderEngine : IDisposable
         _grid = new GridRenderer(gl);
         _axes = new AxesRenderer(gl);
         _linePreview = new LinePreviewRenderer(gl);
+        _ghostOutline = new GhostOutlineRenderer(gl);
     }
 
     public void Resize(uint pixelWidth, uint pixelHeight)
@@ -78,7 +80,8 @@ public sealed class RenderEngine : IDisposable
         double deltaSeconds,
         IReadOnlyList<Mesh>? meshes = null,
         Func<Mesh, MeshHighlight?>? highlightSelector = null,
-        LinePreview? linePreview = null)
+        LinePreview? linePreview = null,
+        GhostPreview? ghostPreview = null)
     {
         if (_gl is null || _grid is null || _axes is null)
         {
@@ -108,6 +111,11 @@ public sealed class RenderEngine : IDisposable
         {
             _linePreview?.Render(view, projection, preview.SegmentStart, preview.CursorPoint, preview.MarkerColor, preview.LineColor);
         }
+
+        if (ghostPreview is { } ghost)
+        {
+            _ghostOutline?.Render(view, projection, ghost.Segments, ghost.Color);
+        }
     }
 
     public void Dispose()
@@ -115,6 +123,7 @@ public sealed class RenderEngine : IDisposable
         _grid?.Dispose();
         _axes?.Dispose();
         _linePreview?.Dispose();
+        _ghostOutline?.Dispose();
 
         foreach (var renderer in _meshRenderers.Values)
         {

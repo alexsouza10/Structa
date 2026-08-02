@@ -34,12 +34,7 @@ public sealed class LineTool
     // clique repetido sem mover o cursor.
     private const float WeldDistanceSquared = 1e-6f;
 
-    private static readonly (Vector3 Direction, LineSnapKind Kind)[] Axes =
-    [
-        (Vector3.UnitX, LineSnapKind.AxisX),
-        (Vector3.UnitY, LineSnapKind.AxisY),
-        (Vector3.UnitZ, LineSnapKind.AxisZ),
-    ];
+    private static readonly LineSnapKind[] AxisKindByIndex = [LineSnapKind.AxisX, LineSnapKind.AxisY, LineSnapKind.AxisZ];
 
     private readonly Scene _scene;
     private Mesh? _sketchMesh;
@@ -140,9 +135,9 @@ public sealed class LineTool
         var ray = RayCaster.ScreenPointToRay(screenPoint, viewportSize, cameraPosition, view, projection);
 
         if (_startPoint is { } start &&
-            TryAxisSnap(ray, start, screenPoint, viewportSize, view, projection, out var axisPoint, out var axisKind))
+            AxisSnapper.TryFindClosestAxis(ray, start, screenPoint, viewportSize, view, projection, AxisPixelTolerance, out var axisPoint, out var axisIndex))
         {
-            return new LineSnapResult(axisPoint, axisKind);
+            return new LineSnapResult(axisPoint, AxisKindByIndex[axisIndex]);
         }
 
         var planeHeight = _startPoint?.Z ?? 0f;
@@ -157,35 +152,5 @@ public sealed class LineTool
         var cameraForward = Vector3.Normalize(fallbackReference - cameraPosition);
         RayIntersection.TryIntersectPlane(ray, fallbackReference, cameraForward, out var fallbackPoint);
         return new LineSnapResult(fallbackPoint, LineSnapKind.Plane);
-    }
-
-    private static bool TryAxisSnap(
-        Ray ray, Vector3 start, Vector2 screenPoint, Vector2 viewportSize, Matrix4x4 view, Matrix4x4 projection,
-        out Vector3 point, out LineSnapKind kind)
-    {
-        var bestDistance = AxisPixelTolerance;
-        point = default;
-        kind = default;
-        var found = false;
-
-        foreach (var (direction, axisKind) in Axes)
-        {
-            if (!RayIntersection.TryClosestPointOnLine(ray, start, direction, out var candidate) ||
-                !RayCaster.TryWorldToScreen(candidate, viewportSize, view, projection, out var screen))
-            {
-                continue;
-            }
-
-            var distance = Vector2.Distance(screenPoint, screen);
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                point = candidate;
-                kind = axisKind;
-                found = true;
-            }
-        }
-
-        return found;
     }
 }

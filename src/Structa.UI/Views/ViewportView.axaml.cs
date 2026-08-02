@@ -11,8 +11,13 @@ namespace Structa.UI.Views;
 /// Traduz mouse/teclado do <c>InputSurface</c> (overlay transparente) para a navegação da câmera e as
 /// ferramentas expostas por <see cref="RenderViewport"/>: botão do meio arrasta = órbita, Shift + botão
 /// do meio arrasta = pan, roda do mouse = zoom, Home = resetar vista. Botão esquerdo = ação da
-/// ferramenta ativa (selecionar, com Shift somando à seleção atual; ou colocar ponto da ferramenta
-/// Linha), Esc = cancelar segmento pendente / limpar seleção, L = ativar a ferramenta Linha.
+/// ferramenta ativa (selecionar, com Shift somando à seleção atual; colocar ponto da ferramenta Linha;
+/// ou agarrar a seleção/uma face e começar o arrasto de Empurrar/Puxar, Mover, Rotacionar ou Escalar,
+/// confirmado ao soltar o botão). Ctrl ao começar um arrasto de Mover duplica a seleção em vez de
+/// movê-la no lugar. Esc = cancelar operação pendente / limpar seleção. Atalhos: L = Linha, P =
+/// Empurrar/Puxar, M = Mover, R = Rotacionar, S = Escalar. Com uma ferramenta de arrasto em andamento,
+/// dígitos/ponto/sinal digitam um valor exato (distância, ângulo ou fator), Backspace apaga e Enter
+/// confirma (equivalente a soltar o botão).
 /// </summary>
 public partial class ViewportView : UserControl
 {
@@ -65,7 +70,10 @@ public partial class ViewportView : UserControl
             }
 
             InputSurface.Focus();
-            RenderSurface.HandlePrimaryClick(point.Position, e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            RenderSurface.HandlePrimaryClick(
+                point.Position,
+                e.KeyModifiers.HasFlag(KeyModifiers.Shift),
+                e.KeyModifiers.HasFlag(KeyModifiers.Control));
             return;
         }
 
@@ -86,8 +94,8 @@ public partial class ViewportView : UserControl
     {
         var position = e.GetCurrentPoint(InputSurface).Position;
 
-        // Sempre repassado, mesmo sem botão pressionado: a ferramenta Linha precisa da posição atual
-        // do cursor a cada frame para desenhar o preview (snap + segmento em arrasto).
+        // Sempre repassado, mesmo sem botão pressionado: as ferramentas de desenho/transformação
+        // precisam da posição atual do cursor a cada frame para desenhar o preview.
         RenderSurface.UpdatePointer(position);
 
         if (!_isOrbiting && !_isPanning)
@@ -114,6 +122,11 @@ public partial class ViewportView : UserControl
 
     private void OnInputSurfacePointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (e.InitialPressMouseButton == MouseButton.Left)
+        {
+            RenderSurface.CommitActiveTool();
+        }
+
         if (!_isOrbiting && !_isPanning)
         {
             return;
@@ -143,10 +156,87 @@ public partial class ViewportView : UserControl
             RenderSurface.CancelActiveTool();
             e.Handled = true;
         }
-        else if (e.Key == Key.L)
+        else if (TryGetToolShortcut(e.Key, out var tool))
         {
-            _eventAggregator.Publish(new EditorToolChangedEvent(EditorTool.Line));
+            _eventAggregator.Publish(new EditorToolChangedEvent(tool));
             e.Handled = true;
         }
+        else if (RenderSurface.IsTransformToolActive && TryHandleToolValueKey(e.Key))
+        {
+            e.Handled = true;
+        }
+    }
+
+    private static bool TryGetToolShortcut(Key key, out EditorTool tool)
+    {
+        switch (key)
+        {
+            case Key.L:
+                tool = EditorTool.Line;
+                return true;
+            case Key.P:
+                tool = EditorTool.PushPull;
+                return true;
+            case Key.M:
+                tool = EditorTool.Move;
+                return true;
+            case Key.R:
+                tool = EditorTool.Rotate;
+                return true;
+            case Key.S:
+                tool = EditorTool.Scale;
+                return true;
+            default:
+                tool = default;
+                return false;
+        }
+    }
+
+    /// <summary>Dígitos, ponto decimal, sinal de menos, Backspace e Enter controlam o valor exato
+    /// (distância, ângulo ou fator, conforme a ferramenta ativa) enquanto o arrasto está em andamento.
+    /// Retorna false para qualquer outra tecla.</summary>
+    private bool TryHandleToolValueKey(Key key)
+    {
+        if (TryGetDigit(key, out var digit))
+        {
+            RenderSurface.AppendActiveToolCharacter(digit);
+            return true;
+        }
+
+        switch (key)
+        {
+            case Key.OemPeriod or Key.Decimal:
+                RenderSurface.AppendActiveToolCharacter('.');
+                return true;
+            case Key.OemMinus or Key.Subtract:
+                RenderSurface.AppendActiveToolCharacter('-');
+                return true;
+            case Key.Back:
+                RenderSurface.RemoveActiveToolCharacter();
+                return true;
+            case Key.Enter:
+                RenderSurface.CommitActiveTool();
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryGetDigit(Key key, out char digit)
+    {
+        if (key >= Key.D0 && key <= Key.D9)
+        {
+            digit = (char)('0' + (key - Key.D0));
+            return true;
+        }
+
+        if (key >= Key.NumPad0 && key <= Key.NumPad9)
+        {
+            digit = (char)('0' + (key - Key.NumPad0));
+            return true;
+        }
+
+        digit = default;
+        return false;
     }
 }

@@ -5,4 +5,8 @@ public enum EditorTool
 {
     Select,
     Line,
+    PushPull,
+    Move,
+    Rotate,
+    Scale,
 }

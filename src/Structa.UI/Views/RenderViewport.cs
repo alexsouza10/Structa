@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
 using Avalonia;
 using Avalonia.Controls;
@@ -42,6 +43,17 @@ public sealed class RenderViewport : OpenGlControlBase
         private set => SetValue(FramesPerSecondProperty, value);
     }
 
+    public static readonly StyledProperty<string?> ToolStatusTextProperty =
+        AvaloniaProperty.Register<RenderViewport, string?>(nameof(ToolStatusText));
+
+    /// <summary>Indicador da ferramenta de arrasto ativa (distância do Empurrar/Puxar ou Mover, ângulo do
+    /// Rotacionar, fator do Escalar — dígitos ou valor arrastado, formatado); nulo se nenhuma estiver ativa.</summary>
+    public string? ToolStatusText
+    {
+        get => GetValue(ToolStatusTextProperty);
+        private set => SetValue(ToolStatusTextProperty, value);
+    }
+
     // Cores de snap do preview da ferramenta Linha: eixos usam as mesmas cores do AxesRenderer (X/Y/Z),
     // ponta existente em verde-destaque e plano livre em âmbar — cada uma comunica visualmente por que
     // o ponto está grudado ali.
@@ -49,14 +61,27 @@ public sealed class RenderViewport : OpenGlControlBase
     private static readonly Vector3 EndpointSnapColor = new(0.15f, 0.90f, 0.40f);
     private static readonly Vector3 PlaneSnapColor = new(0.95f, 0.75f, 0.15f);
 
+    // Uma cor de fantasma por ferramenta de arrasto, para diferenciar visualmente qual operação está
+    // em andamento mesmo sem olhar para a barra superior.
+    private static readonly Vector3 PushPullGhostColor = new(0.95f, 0.55f, 0.15f);
+    private static readonly Vector3 MoveGhostColor = new(0.20f, 0.75f, 0.95f);
+    private static readonly Vector3 RotateGhostColor = new(0.75f, 0.35f, 0.95f);
+    private static readonly Vector3 ScaleGhostColor = new(0.65f, 0.85f, 0.25f);
+
     private readonly GlCamera _camera = new();
     private readonly OrbitCameraController _cameraController;
     private readonly RenderEngine _engine = new();
     private readonly Scene _scene = new();
     private readonly SelectionManager _selection;
     private readonly LineTool _lineTool;
+    private readonly PushPullTool _pushPullTool;
+    private readonly MoveTool _moveTool;
+    private readonly RotateTool _rotateTool;
+    private readonly ScaleTool _scaleTool;
+    private readonly MirrorTool _mirrorTool;
     private readonly IEventAggregator _eventAggregator;
     private readonly IDisposable _toolSubscription;
+    private readonly IDisposable _mirrorSubscription;
     private EditorTool _activeTool = EditorTool.Select;
     private Point? _pointerPosition;
     private GL? _gl;
@@ -68,7 +93,13 @@ public sealed class RenderViewport : OpenGlControlBase
         _eventAggregator = App.Services.GetRequiredService<IEventAggregator>();
         _selection = new SelectionManager(_eventAggregator);
         _lineTool = new LineTool(_scene);
+        _pushPullTool = new PushPullTool(_scene);
+        _moveTool = new MoveTool(_scene);
+        _rotateTool = new RotateTool(_scene);
+        _scaleTool = new ScaleTool(_scene);
+        _mirrorTool = new MirrorTool(_scene);
         _toolSubscription = _eventAggregator.Subscribe<EditorToolChangedEvent>(OnToolChanged);
+        _mirrorSubscription = _eventAggregator.Subscribe<MirrorRequestedEvent>(OnMirrorRequested);
 
         // Conteúdo de teste: ainda não há detecção de faces (Etapa 06), então estas malhas existem só
         // para validar o picking de vértice/aresta/face/objeto e dar algo para a Linha se conectar —
@@ -91,19 +122,104 @@ public sealed class RenderViewport : OpenGlControlBase
     /// ativa. Nulo quando o cursor está fora da viewport.</summary>
     public void UpdatePointer(Point? screenPoint) => _pointerPosition = screenPoint;
 
-    /// <summary>Clique com o botão esquerdo: delega para a ferramenta ativa (seleção ou linha).</summary>
-    public void HandlePrimaryClick(Point screenPoint, bool additive)
+    /// <summary>Botão esquerdo pressionado: delega para a ferramenta ativa (seleção, linha, início do
+    /// arrasto de Empurrar/Puxar, ou agarrar a seleção atual para Mover/Rotacionar/Escalar — a
+    /// confirmação vem em <see cref="CommitActiveTool"/>, ao soltar). <paramref name="duplicate"/> (Ctrl)
+    /// só é usado pela ferramenta Mover.</summary>
+    public void HandlePrimaryClick(Point screenPoint, bool additive, bool duplicate)
     {
-        if (_activeTool == EditorTool.Line)
+        var viewportSize = new Vector2((float)Bounds.Width, (float)Bounds.Height);
+        var pixelPoint = new Vector2((float)screenPoint.X, (float)screenPoint.Y);
+        var view = _camera.GetViewMatrix();
+        var projection = _camera.GetProjectionMatrix();
+
+        switch (_activeTool)
         {
-            var viewportSize = new Vector2((float)Bounds.Width, (float)Bounds.Height);
-            var pixelPoint = new Vector2((float)screenPoint.X, (float)screenPoint.Y);
-
-            _lineTool.Click(pixelPoint, viewportSize, _camera.Position, _camera.GetViewMatrix(), _camera.GetProjectionMatrix());
-            return;
+            case EditorTool.Line:
+                _lineTool.Click(pixelPoint, viewportSize, _camera.Position, view, projection);
+                return;
+            case EditorTool.PushPull:
+                _pushPullTool.TryBegin(pixelPoint, viewportSize, _camera.Position, view, projection);
+                return;
+            case EditorTool.Move:
+                _moveTool.TryBegin(_selection.Selected, duplicate, pixelPoint, viewportSize, _camera.Position, view, projection);
+                return;
+            case EditorTool.Rotate:
+                _rotateTool.TryBegin(_selection.Selected, pixelPoint, viewportSize, _camera.Position, view, projection);
+                return;
+            case EditorTool.Scale:
+                _scaleTool.TryBegin(_selection.Selected, pixelPoint, viewportSize, _camera.Position, view, projection);
+                return;
+            default:
+                Pick(screenPoint, additive);
+                return;
         }
+    }
 
-        Pick(screenPoint, additive);
+    /// <summary>Verdadeiro enquanto qualquer ferramenta de arrasto (Empurrar/Puxar, Mover, Rotacionar,
+    /// Escalar) está em andamento — usado pela view para saber se deve rotear dígitos/Enter para ela.</summary>
+    public bool IsTransformToolActive => _pushPullTool.IsActive || _moveTool.IsActive || _rotateTool.IsActive || _scaleTool.IsActive;
+
+    /// <summary>Confirma a operação da ferramenta de arrasto ativa com o valor efetivo atual (arrastado ou
+    /// digitado). Chamado ao soltar o botão esquerdo ou pressionar Enter; sem efeito se nenhuma estiver ativa.</summary>
+    public void CommitActiveTool()
+    {
+        if (_pushPullTool.IsActive)
+        {
+            _pushPullTool.Commit();
+        }
+        else if (_moveTool.IsActive)
+        {
+            _moveTool.Commit();
+        }
+        else if (_rotateTool.IsActive)
+        {
+            _rotateTool.Commit();
+        }
+        else if (_scaleTool.IsActive)
+        {
+            _scaleTool.Commit();
+        }
+    }
+
+    public void AppendActiveToolCharacter(char character)
+    {
+        if (_pushPullTool.IsActive)
+        {
+            _pushPullTool.AppendDistanceCharacter(character);
+        }
+        else if (_moveTool.IsActive)
+        {
+            _moveTool.AppendDistanceCharacter(character);
+        }
+        else if (_rotateTool.IsActive)
+        {
+            _rotateTool.AppendAngleCharacter(character);
+        }
+        else if (_scaleTool.IsActive)
+        {
+            _scaleTool.AppendFactorCharacter(character);
+        }
+    }
+
+    public void RemoveActiveToolCharacter()
+    {
+        if (_pushPullTool.IsActive)
+        {
+            _pushPullTool.RemoveLastDistanceCharacter();
+        }
+        else if (_moveTool.IsActive)
+        {
+            _moveTool.RemoveLastDistanceCharacter();
+        }
+        else if (_rotateTool.IsActive)
+        {
+            _rotateTool.RemoveLastAngleCharacter();
+        }
+        else if (_scaleTool.IsActive)
+        {
+            _scaleTool.RemoveLastFactorCharacter();
+        }
     }
 
     /// <summary>Faz picking no ponto de tela (DIPs, relativo a este controle) e atualiza a seleção.</summary>
@@ -124,9 +240,34 @@ public sealed class RenderViewport : OpenGlControlBase
 
     public void ClearSelection() => _selection.Clear();
 
-    /// <summary>Esc: cancela o segmento pendente da ferramenta ativa; sem segmento pendente, limpa a seleção.</summary>
+    /// <summary>Esc: cancela a operação pendente da ferramenta ativa (arrasto de Empurrar/Puxar, Mover,
+    /// Rotacionar, Escalar, ou segmento de Linha); sem operação pendente, limpa a seleção.</summary>
     public void CancelActiveTool()
     {
+        if (_pushPullTool.IsActive)
+        {
+            _pushPullTool.Cancel();
+            return;
+        }
+
+        if (_moveTool.IsActive)
+        {
+            _moveTool.Cancel();
+            return;
+        }
+
+        if (_rotateTool.IsActive)
+        {
+            _rotateTool.Cancel();
+            return;
+        }
+
+        if (_scaleTool.IsActive)
+        {
+            _scaleTool.Cancel();
+            return;
+        }
+
         if (_lineTool.IsDrawing)
         {
             _lineTool.Cancel();
@@ -135,6 +276,8 @@ public sealed class RenderViewport : OpenGlControlBase
 
         ClearSelection();
     }
+
+    private void OnMirrorRequested(MirrorRequestedEvent e) => _mirrorTool.Mirror(_selection.Selected, e.Axis);
 
     private void OnToolChanged(EditorToolChangedEvent e)
     {
@@ -145,6 +288,10 @@ public sealed class RenderViewport : OpenGlControlBase
 
         _activeTool = e.Tool;
         _lineTool.Cancel();
+        _pushPullTool.Cancel();
+        _moveTool.Cancel();
+        _rotateTool.Cancel();
+        _scaleTool.Cancel();
     }
 
     protected override void OnOpenGlInit(GlInterface gl)
@@ -192,8 +339,33 @@ public sealed class RenderViewport : OpenGlControlBase
             // (não necessariamente o 0/padrão), que ela compõe no restante da árvore visual.
             _gl!.BindFramebuffer(GLEnum.Framebuffer, (uint)fb);
 
-            // Reenvia buffers de malhas que a ferramenta Linha alterou desde o último frame
-            // (Mesh.Version) — barato quando nada mudou, é só uma comparação de inteiro por malha.
+            if (_pointerPosition is { } dragPointer)
+            {
+                var viewportSize = new Vector2((float)Bounds.Width, (float)Bounds.Height);
+                var pixelPoint = new Vector2((float)dragPointer.X, (float)dragPointer.Y);
+                var view = _camera.GetViewMatrix();
+                var projection = _camera.GetProjectionMatrix();
+
+                if (_pushPullTool.IsActive)
+                {
+                    _pushPullTool.UpdateDrag(pixelPoint, viewportSize, _camera.Position, view, projection);
+                }
+                else if (_moveTool.IsActive)
+                {
+                    _moveTool.UpdateDrag(pixelPoint, viewportSize, _camera.Position, view, projection);
+                }
+                else if (_rotateTool.IsActive)
+                {
+                    _rotateTool.UpdateDrag(pixelPoint, viewportSize, _camera.Position, view, projection);
+                }
+                else if (_scaleTool.IsActive)
+                {
+                    _scaleTool.UpdateDrag(pixelPoint, viewportSize, _camera.Position, view, projection);
+                }
+            }
+
+            // Reenvia buffers de malhas que as ferramentas de desenho/transformação alteraram desde o
+            // último frame (Mesh.Version) — barato quando nada mudou, é só uma comparação de inteiro por malha.
             _engine.SyncMeshes(_scene.Meshes);
 
             _engine.Resize(pixelWidth, pixelHeight);
@@ -204,10 +376,16 @@ public sealed class RenderViewport : OpenGlControlBase
                 deltaSeconds,
                 _scene.Meshes,
                 BuildHighlight,
-                BuildLinePreview());
+                BuildLinePreview(),
+                BuildGhostPreview());
 
             var fps = Math.Round(_engine.Stats.FramesPerSecond);
-            Dispatcher.UIThread.Post(() => FramesPerSecond = fps);
+            var statusText = BuildStatusText();
+            Dispatcher.UIThread.Post(() =>
+            {
+                FramesPerSecond = fps;
+                ToolStatusText = statusText;
+            });
         }
         catch (Exception ex)
         {
@@ -223,6 +401,7 @@ public sealed class RenderViewport : OpenGlControlBase
     protected override void OnOpenGlDeinit(GlInterface gl)
     {
         _toolSubscription.Dispose();
+        _mirrorSubscription.Dispose();
         _selection.Dispose();
         _engine.Dispose();
         base.OnOpenGlDeinit(gl);
@@ -249,6 +428,99 @@ public sealed class RenderViewport : OpenGlControlBase
         };
 
         return new LinePreview(_lineTool.StartPoint, snap.Position, markerColor, LineDrawColor);
+    }
+
+    /// <summary>Monta o "fantasma" da ferramenta de arrasto ativa (só uma por vez): Empurrar/Puxar desenha
+    /// o contorno deslocado + conectores verticais; Mover/Rotacionar/Escalar desenham o wireframe da
+    /// seleção já transformado (<see cref="GhostGeometry"/>). Formato esperado pelo <see cref="GhostOutlineRenderer"/>:
+    /// pontos em pares consecutivos, cada par uma linha independente.</summary>
+    private GhostPreview? BuildGhostPreview()
+    {
+        if (_pushPullTool.IsActive)
+        {
+            return BuildPushPullGhost();
+        }
+
+        if (_moveTool.IsActive && _moveTool.GetPreviewSegments() is { Count: > 0 } moveSegments)
+        {
+            return new GhostPreview(moveSegments, MoveGhostColor);
+        }
+
+        if (_rotateTool.IsActive && _rotateTool.GetPreviewSegments() is { Count: > 0 } rotateSegments)
+        {
+            return new GhostPreview(rotateSegments, RotateGhostColor);
+        }
+
+        if (_scaleTool.IsActive && _scaleTool.GetPreviewSegments() is { Count: > 0 } scaleSegments)
+        {
+            return new GhostPreview(scaleSegments, ScaleGhostColor);
+        }
+
+        return null;
+    }
+
+    private GhostPreview? BuildPushPullGhost()
+    {
+        if (_pushPullTool.GetBoundaryLoopPositions() is not { Count: > 0 } loop)
+        {
+            return null;
+        }
+
+        var offset = _pushPullTool.CurrentOffset;
+        var segments = new List<Vector3>(loop.Count * 4);
+
+        for (var i = 0; i < loop.Count; i++)
+        {
+            var basePoint = loop[i];
+            var topPoint = basePoint + offset;
+            var nextTopPoint = loop[(i + 1) % loop.Count] + offset;
+
+            segments.Add(basePoint);
+            segments.Add(topPoint);
+
+            segments.Add(topPoint);
+            segments.Add(nextTopPoint);
+        }
+
+        return new GhostPreview(segments, PushPullGhostColor);
+    }
+
+    /// <summary>Rótulo do indicador na viewport, já com prefixo (unidade varia por ferramenta) — nulo se
+    /// nenhuma ferramenta de arrasto estiver ativa.</summary>
+    private string? BuildStatusText()
+    {
+        if (_pushPullTool.IsActive)
+        {
+            var value = _pushPullTool.TypedDistanceText ?? _pushPullTool.CurrentDistance.ToString("0.00", CultureInfo.InvariantCulture);
+            return $"Distância: {value}";
+        }
+
+        if (_moveTool.IsActive)
+        {
+            var value = _moveTool.TypedDistanceText ?? _moveTool.CurrentDelta.Length().ToString("0.00", CultureInfo.InvariantCulture);
+            var axisSuffix = _moveTool.LockedAxisIndex switch
+            {
+                0 => " · Eixo X",
+                1 => " · Eixo Y",
+                2 => " · Eixo Z",
+                _ => string.Empty,
+            };
+            return $"Distância: {value}{axisSuffix}";
+        }
+
+        if (_rotateTool.IsActive)
+        {
+            var value = _rotateTool.TypedAngleText ?? (_rotateTool.CurrentAngleRadians * 180f / MathF.PI).ToString("0.0", CultureInfo.InvariantCulture);
+            return $"Ângulo: {value}°";
+        }
+
+        if (_scaleTool.IsActive)
+        {
+            var value = _scaleTool.TypedFactorText ?? _scaleTool.CurrentFactor.ToString("0.00", CultureInfo.InvariantCulture);
+            return $"Fator: {value}";
+        }
+
+        return null;
     }
 
     // Mesmas cores do AxesRenderer (X=vermelho, Y=verde, Z=azul), para o indicador de snap por eixo

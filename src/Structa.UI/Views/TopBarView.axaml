@@ -23,6 +23,18 @@
         <ToggleButton Content="Linha (L)"
                       IsChecked="{Binding ActiveTool, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static editor:EditorTool.Line}}"
                       Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Line}" />
+        <ToggleButton Content="Empurrar/Puxar (P)"
+                      IsChecked="{Binding ActiveTool, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static editor:EditorTool.PushPull}}"
+                      Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.PushPull}" />
+        <ToggleButton Content="Mover (M)"
+                      IsChecked="{Binding ActiveTool, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static editor:EditorTool.Move}}"
+                      Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Move}" />
+        <ToggleButton Content="Rotacionar (R)"
+                      IsChecked="{Binding ActiveTool, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static editor:EditorTool.Rotate}}"
+                      Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Rotate}" />
+        <ToggleButton Content="Escalar (S)"
+                      IsChecked="{Binding ActiveTool, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static editor:EditorTool.Scale}}"
+                      Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Scale}" />
       </StackPanel>
 
       <StackPanel Orientation="Horizontal" Spacing="8" DockPanel.Dock="Right" VerticalAlignment="Center">
@@ -55,10 +67,10 @@
           <MenuItem Header="_Círculo" IsEnabled="False" />
         </MenuItem>
         <MenuItem Header="_Ferramentas">
-          <MenuItem Header="_Empurrar/Puxar" IsEnabled="False" />
-          <MenuItem Header="_Mover" IsEnabled="False" />
-          <MenuItem Header="_Rotacionar" IsEnabled="False" />
-          <MenuItem Header="_Escalar" IsEnabled="False" />
+          <MenuItem Header="_Empurrar/Puxar" Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.PushPull}" />
+          <MenuItem Header="_Mover" Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Move}" />
+          <MenuItem Header="_Rotacionar" Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Rotate}" />
+          <MenuItem Header="Es_calar" Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Scale}" />
         </MenuItem>
         <MenuItem Header="_Janela">
           <MenuItem Header="_Cenas" IsEnabled="False" />

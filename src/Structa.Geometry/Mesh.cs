@@ -80,6 +80,22 @@ public sealed class Mesh
         Version++;
     }
 
+    /// <summary>Reposiciona um vértice existente (ex.: Push/Pull movendo um vértice compartilhado com
+    /// geometria vizinha, que assim "estica" junto). Não afeta topologia — só a posição.</summary>
+    public void MoveVertex(int index, Vector3 position)
+    {
+        _vertices[index] = position;
+        Version++;
+    }
+
+    /// <summary>Troca os três vértices de um triângulo já existente, mantendo seu índice (ex.: Push/Pull
+    /// reatribuindo a face de uma tampa para os vértices extrudados).</summary>
+    public void ReplaceTriangle(int triangleIndex, int a, int b, int c)
+    {
+        _triangles[triangleIndex] = (a, b, c);
+        Version++;
+    }
+
     private static bool IsSameVertexSet(int a1, int b1, int c1, int a2, int b2, int c2) =>
         (a1 == a2 || a1 == b2 || a1 == c2) &&
         (b1 == a2 || b1 == b2 || b1 == c2) &&

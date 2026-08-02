@@ -133,28 +133,10 @@ public sealed class SelectionManager : IDisposable
         return best;
     }
 
-    private static SelectableElement? FindClosestFace(Ray ray, IReadOnlyList<Mesh> meshes)
-    {
-        SelectableElement? best = null;
-        var bestDistance = float.MaxValue;
-
-        foreach (var mesh in meshes)
-        {
-            for (var i = 0; i < mesh.Triangles.Count; i++)
-            {
-                var (a, b, c) = mesh.Triangles[i];
-
-                if (RayIntersection.TryIntersectTriangle(ray, mesh.Vertices[a], mesh.Vertices[b], mesh.Vertices[c], out var distance)
-                    && distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    best = new SelectableElement(mesh.Id, SelectionMode.Face, i);
-                }
-            }
-        }
-
-        return best;
-    }
+    private static SelectableElement? FindClosestFace(Ray ray, IReadOnlyList<Mesh> meshes) =>
+        FacePicker.TryFindClosest(ray, meshes, out var meshId, out var triangleIndex, out _)
+            ? new SelectableElement(meshId, SelectionMode.Face, triangleIndex)
+            : null;
 
     private static SelectableElement? FindClosestObject(Ray ray, IReadOnlyList<Mesh> meshes)
     {
