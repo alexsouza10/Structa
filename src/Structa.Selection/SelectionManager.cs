@@ -98,31 +98,10 @@ public sealed class SelectionManager : IDisposable
     private void NotifyChanged() => _eventAggregator.Publish(new SelectionChangedEvent(Mode, _selected.Count));
 
     private static SelectableElement? FindClosestVertex(
-        Vector2 screenPoint, IReadOnlyList<Mesh> meshes, Vector2 viewportSize, Matrix4x4 view, Matrix4x4 projection)
-    {
-        SelectableElement? best = null;
-        var bestDistance = VertexPixelTolerance;
-
-        foreach (var mesh in meshes)
-        {
-            for (var i = 0; i < mesh.Vertices.Count; i++)
-            {
-                if (!RayCaster.TryWorldToScreen(mesh.Vertices[i], viewportSize, view, projection, out var screen))
-                {
-                    continue;
-                }
-
-                var distance = Vector2.Distance(screenPoint, screen);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    best = new SelectableElement(mesh.Id, SelectionMode.Vertex, i);
-                }
-            }
-        }
-
-        return best;
-    }
+        Vector2 screenPoint, IReadOnlyList<Mesh> meshes, Vector2 viewportSize, Matrix4x4 view, Matrix4x4 projection) =>
+        EndpointSnapper.TryFindClosest(screenPoint, meshes, viewportSize, view, projection, VertexPixelTolerance, out var meshId, out var vertexIndex, out _)
+            ? new SelectableElement(meshId, SelectionMode.Vertex, vertexIndex)
+            : null;
 
     private static SelectableElement? FindClosestEdge(
         Vector2 screenPoint, IReadOnlyList<Mesh> meshes, Vector2 viewportSize, Matrix4x4 view, Matrix4x4 projection)

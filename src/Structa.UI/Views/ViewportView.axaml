@@ -29,6 +29,20 @@
                  FontFamily="Consolas,monospace"
                  FontSize="12" />
     </Border>
+
+    <Border Background="#66000000"
+            CornerRadius="4"
+            Padding="8,4"
+            Margin="12"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Bottom"
+            IsHitTestVisible="False">
+      <TextBlock Text="Ferramenta Linha (L): clique para iniciar, clique de novo para fechar a aresta e encadear a próxima. Esc cancela o segmento pendente."
+                 Foreground="White"
+                 FontSize="11"
+                 MaxWidth="360"
+                 TextWrapping="Wrap" />
+    </Border>
   </Panel>
 
 </UserControl>

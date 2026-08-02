@@ -1,14 +1,18 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Microsoft.Extensions.DependencyInjection;
+using Structa.Core.Editor;
+using Structa.Core.Messaging;
 
 namespace Structa.UI.Views;
 
 /// <summary>
-/// Traduz mouse/teclado do <c>InputSurface</c> (overlay transparente) para a navegação da câmera e o
-/// picking expostos por <see cref="RenderViewport"/>: botão do meio arrasta = órbita, Shift + botão do
-/// meio arrasta = pan, roda do mouse = zoom, Home = resetar vista. Botão esquerdo = selecionar (Shift
-/// soma à seleção atual), Esc = limpar seleção.
+/// Traduz mouse/teclado do <c>InputSurface</c> (overlay transparente) para a navegação da câmera e as
+/// ferramentas expostas por <see cref="RenderViewport"/>: botão do meio arrasta = órbita, Shift + botão
+/// do meio arrasta = pan, roda do mouse = zoom, Home = resetar vista. Botão esquerdo = ação da
+/// ferramenta ativa (selecionar, com Shift somando à seleção atual; ou colocar ponto da ferramenta
+/// Linha), Esc = cancelar segmento pendente / limpar seleção, L = ativar a ferramenta Linha.
 /// </summary>
 public partial class ViewportView : UserControl
 {
@@ -17,6 +21,8 @@ public partial class ViewportView : UserControl
     // aditivo (Shift) alternaria a seleção duas vezes e pareceria não fazer nada.
     private const double DuplicateClickWindowMs = 200;
     private const double DuplicateClickDistance = 3;
+
+    private readonly IEventAggregator _eventAggregator = App.Services.GetRequiredService<IEventAggregator>();
 
     private bool _isOrbiting;
     private bool _isPanning;
@@ -31,6 +37,7 @@ public partial class ViewportView : UserControl
         InputSurface.PointerPressed += OnInputSurfacePointerPressed;
         InputSurface.PointerMoved += OnInputSurfacePointerMoved;
         InputSurface.PointerReleased += OnInputSurfacePointerReleased;
+        InputSurface.PointerExited += OnInputSurfacePointerExited;
         InputSurface.PointerWheelChanged += OnInputSurfacePointerWheelChanged;
         InputSurface.KeyDown += OnInputSurfaceKeyDown;
     }
@@ -58,7 +65,7 @@ public partial class ViewportView : UserControl
             }
 
             InputSurface.Focus();
-            RenderSurface.Pick(point.Position, e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            RenderSurface.HandlePrimaryClick(point.Position, e.KeyModifiers.HasFlag(KeyModifiers.Shift));
             return;
         }
 
@@ -77,12 +84,17 @@ public partial class ViewportView : UserControl
 
     private void OnInputSurfacePointerMoved(object? sender, PointerEventArgs e)
     {
+        var position = e.GetCurrentPoint(InputSurface).Position;
+
+        // Sempre repassado, mesmo sem botão pressionado: a ferramenta Linha precisa da posição atual
+        // do cursor a cada frame para desenhar o preview (snap + segmento em arrasto).
+        RenderSurface.UpdatePointer(position);
+
         if (!_isOrbiting && !_isPanning)
         {
             return;
         }
 
-        var position = e.GetCurrentPoint(InputSurface).Position;
         var delta = position - _lastPointerPosition;
         _lastPointerPosition = position;
 
@@ -97,6 +109,8 @@ public partial class ViewportView : UserControl
 
         e.Handled = true;
     }
+
+    private void OnInputSurfacePointerExited(object? sender, PointerEventArgs e) => RenderSurface.UpdatePointer(null);
 
     private void OnInputSurfacePointerReleased(object? sender, PointerReleasedEventArgs e)
     {
@@ -126,7 +140,12 @@ public partial class ViewportView : UserControl
         }
         else if (e.Key == Key.Escape)
         {
-            RenderSurface.ClearSelection();
+            RenderSurface.CancelActiveTool();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.L)
+        {
+            _eventAggregator.Publish(new EditorToolChangedEvent(EditorTool.Line));
             e.Handled = true;
         }
     }

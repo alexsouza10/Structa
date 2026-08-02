@@ -49,6 +49,54 @@ public static class RayIntersection
         return true;
     }
 
+    /// <summary>Interseção raio-plano. Retorna false se o raio for paralelo ao plano ou o cruzar atrás da origem.</summary>
+    public static bool TryIntersectPlane(Ray ray, Vector3 planePoint, Vector3 planeNormal, out Vector3 point)
+    {
+        var denominator = Vector3.Dot(planeNormal, ray.Direction);
+
+        if (MathF.Abs(denominator) < Epsilon)
+        {
+            point = default;
+            return false;
+        }
+
+        var t = Vector3.Dot(planePoint - ray.Origin, planeNormal) / denominator;
+        if (t < 0f)
+        {
+            point = default;
+            return false;
+        }
+
+        point = ray.Origin + (ray.Direction * t);
+        return true;
+    }
+
+    /// <summary>
+    /// Ponto na reta 3D (<paramref name="linePoint"/> + s*<paramref name="lineDirection"/>) mais próximo do
+    /// raio, tratando o raio como reta infinita. Usado para inferência de eixo: mede quão perto o cursor
+    /// está de um eixo X/Y/Z partindo do último ponto, para "grudar" o desenho nele.
+    /// </summary>
+    public static bool TryClosestPointOnLine(Ray ray, Vector3 linePoint, Vector3 lineDirection, out Vector3 point)
+    {
+        var w = ray.Origin - linePoint;
+        var a = Vector3.Dot(ray.Direction, ray.Direction);
+        var b = Vector3.Dot(ray.Direction, lineDirection);
+        var e = Vector3.Dot(lineDirection, lineDirection);
+        var c = Vector3.Dot(ray.Direction, w);
+        var f = Vector3.Dot(lineDirection, w);
+
+        var denominator = (a * e) - (b * b);
+        if (MathF.Abs(denominator) < Epsilon)
+        {
+            point = default;
+            return false;
+        }
+
+        var s = ((a * f) - (b * c)) / denominator;
+        point = linePoint + (lineDirection * s);
+        return true;
+    }
+
     /// <summary>Distância (em pixels) de um ponto até o segmento de reta 2D mais próximo.</summary>
     public static float PointToSegmentDistance(Vector2 point, Vector2 a, Vector2 b)
     {

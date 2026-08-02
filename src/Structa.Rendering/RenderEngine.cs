@@ -15,7 +15,9 @@ public sealed class RenderEngine : IDisposable
     private GL? _gl;
     private GridRenderer? _grid;
     private AxesRenderer? _axes;
+    private LinePreviewRenderer? _linePreview;
     private readonly Dictionary<Guid, MeshRenderer> _meshRenderers = [];
+    private readonly Dictionary<Guid, int> _uploadedVersions = [];
 
     public Vector3 BackgroundColor { get; set; } = new(0.106f, 0.106f, 0.122f);
 
@@ -29,6 +31,7 @@ public sealed class RenderEngine : IDisposable
 
         _grid = new GridRenderer(gl);
         _axes = new AxesRenderer(gl);
+        _linePreview = new LinePreviewRenderer(gl);
     }
 
     public void Resize(uint pixelWidth, uint pixelHeight)
@@ -36,7 +39,11 @@ public sealed class RenderEngine : IDisposable
         _gl?.Viewport(0, 0, pixelWidth, pixelHeight);
     }
 
-    /// <summary>Garante que cada malha da cena tenha buffers de GPU (faz upload das que ainda não têm).</summary>
+    /// <summary>
+    /// Garante que cada malha da cena tenha buffers de GPU atualizados: faz upload das que ainda não
+    /// têm renderer e reenvia as que mudaram desde o último frame (<see cref="Mesh.Version"/> — é o
+    /// caso das malhas que ferramentas de desenho, como a de Linha, crescem incrementalmente).
+    /// </summary>
     public void SyncMeshes(IReadOnlyList<Mesh> meshes)
     {
         if (_gl is null)
@@ -46,14 +53,21 @@ public sealed class RenderEngine : IDisposable
 
         foreach (var mesh in meshes)
         {
-            if (_meshRenderers.ContainsKey(mesh.Id))
+            if (_meshRenderers.TryGetValue(mesh.Id, out var renderer))
             {
+                if (_uploadedVersions[mesh.Id] != mesh.Version)
+                {
+                    renderer.Upload(mesh);
+                    _uploadedVersions[mesh.Id] = mesh.Version;
+                }
+
                 continue;
             }
 
-            var renderer = new MeshRenderer(_gl);
+            renderer = new MeshRenderer(_gl);
             renderer.Upload(mesh);
             _meshRenderers[mesh.Id] = renderer;
+            _uploadedVersions[mesh.Id] = mesh.Version;
         }
     }
 
@@ -63,7 +77,8 @@ public sealed class RenderEngine : IDisposable
         Vector3 cameraPosition,
         double deltaSeconds,
         IReadOnlyList<Mesh>? meshes = null,
-        Func<Mesh, MeshHighlight?>? highlightSelector = null)
+        Func<Mesh, MeshHighlight?>? highlightSelector = null,
+        LinePreview? linePreview = null)
     {
         if (_gl is null || _grid is null || _axes is null)
         {
@@ -78,17 +93,20 @@ public sealed class RenderEngine : IDisposable
         _grid.Render(view, projection, cameraPosition);
         _axes.Render(view, projection);
 
-        if (meshes is null)
+        if (meshes is not null)
         {
-            return;
+            foreach (var mesh in meshes)
+            {
+                if (_meshRenderers.TryGetValue(mesh.Id, out var renderer))
+                {
+                    renderer.Render(view, projection, highlightSelector?.Invoke(mesh));
+                }
+            }
         }
 
-        foreach (var mesh in meshes)
+        if (linePreview is { } preview)
         {
-            if (_meshRenderers.TryGetValue(mesh.Id, out var renderer))
-            {
-                renderer.Render(view, projection, highlightSelector?.Invoke(mesh));
-            }
+            _linePreview?.Render(view, projection, preview.SegmentStart, preview.CursorPoint, preview.MarkerColor, preview.LineColor);
         }
     }
 
@@ -96,6 +114,7 @@ public sealed class RenderEngine : IDisposable
     {
         _grid?.Dispose();
         _axes?.Dispose();
+        _linePreview?.Dispose();
 
         foreach (var renderer in _meshRenderers.Values)
         {

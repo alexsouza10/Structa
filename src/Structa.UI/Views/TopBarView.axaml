@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Structa.UI.ViewModels"
+             xmlns:editor="using:Structa.Core.Editor"
              x:Class="Structa.UI.Views.TopBarView"
              x:DataType="vm:TopBarViewModel">
 
@@ -14,6 +15,15 @@
                  Foreground="{DynamicResource StructaTextPrimaryBrush}"
                  VerticalAlignment="Center" Margin="4,0,20,0"
                  DockPanel.Dock="Left" />
+
+      <StackPanel Orientation="Horizontal" Spacing="4" DockPanel.Dock="Left" Margin="0,0,20,0" VerticalAlignment="Center">
+        <ToggleButton Content="Selecionar"
+                      IsChecked="{Binding ActiveTool, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static editor:EditorTool.Select}}"
+                      Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Select}" />
+        <ToggleButton Content="Linha (L)"
+                      IsChecked="{Binding ActiveTool, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static editor:EditorTool.Line}}"
+                      Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Line}" />
+      </StackPanel>
 
       <StackPanel Orientation="Horizontal" Spacing="8" DockPanel.Dock="Right" VerticalAlignment="Center">
         <TextBlock Text="Tema escuro" VerticalAlignment="Center"
@@ -39,7 +49,7 @@
           <MenuItem Header="_Zoom" IsEnabled="False" />
         </MenuItem>
         <MenuItem Header="_Desenhar">
-          <MenuItem Header="_Linha" IsEnabled="False" />
+          <MenuItem Header="_Linha" Command="{Binding SetToolCommand}" CommandParameter="{x:Static editor:EditorTool.Line}" />
           <MenuItem Header="A_rco" IsEnabled="False" />
           <MenuItem Header="_Retângulo" IsEnabled="False" />
           <MenuItem Header="_Círculo" IsEnabled="False" />
